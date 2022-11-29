@@ -100,7 +100,7 @@ public class UserManager {
             newUser.getName(),
             firstNonNull(newUser.getPassword(), generate("", PASSWORD_LENGTH)),
             newUser.getAliases());
-    doCreate(user, isTemporary);
+    // doCreate(user, isTemporary);
     eventService.publish(new UserCreatedEvent(user));
     return user;
   }

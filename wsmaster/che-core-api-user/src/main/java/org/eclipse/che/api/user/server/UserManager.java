@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021 Red Hat, Inc.
+ * Copyright (c) 2012-2022 Red Hat, Inc.
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -108,14 +108,14 @@ public class UserManager {
   @Transactional(rollbackOn = {RuntimeException.class, ApiException.class})
   protected void doCreate(UserImpl user, boolean isTemporary)
       throws ConflictException, ServerException {
-    userDao.create(user);
-    eventService.publish(new PostUserPersistedEvent(new UserImpl(user))).propagateException();
-    profileDao.create(new ProfileImpl(user.getId()));
-    preferencesDao.setPreferences(
-        user.getId(),
-        ImmutableMap.of(
-            "temporary", Boolean.toString(isTemporary),
-            "codenvy:created", Long.toString(currentTimeMillis())));
+//    userDao.create(user);
+//    eventService.publish(new PostUserPersistedEvent(new UserImpl(user))).propagateException();
+//    profileDao.create(new ProfileImpl(user.getId()));
+//    preferencesDao.setPreferences(
+//        user.getId(),
+//        ImmutableMap.of(
+//            "temporary", Boolean.toString(isTemporary),
+//            "codenvy:created", Long.toString(currentTimeMillis())));
   }
 
   /**

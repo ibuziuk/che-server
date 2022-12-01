@@ -11,7 +11,6 @@
  */
 package org.eclipse.che.workspace.infrastructure.kubernetes.namespace.configurator;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.util.Base64;

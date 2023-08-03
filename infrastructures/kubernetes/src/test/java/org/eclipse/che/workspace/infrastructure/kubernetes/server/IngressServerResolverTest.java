@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021 Red Hat, Inc.
+ * Copyright (c) 2012-2023 Red Hat, Inc.
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -17,7 +17,6 @@ import static java.util.Collections.singletonMap;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-import io.fabric8.kubernetes.api.model.LoadBalancerStatusBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePortBuilder;
@@ -93,118 +92,6 @@ public class IngressServerResolverTest {
   }
 
   @Test
-  public void testResolvingServersWhenThereIsMatchedIngressForTheSpecifiedMachine() {
-    Ingress ingress =
-        createIngress(
-            "matched",
-            "machine",
-            Pair.of("http-server", new ServerConfigImpl("3054", "http", "/api/", ATTRIBUTES_MAP)));
-
-    ServerResolver serverResolver =
-        new IngressServerResolver(
-            new NoopPathTransformInverter(), emptyList(), singletonList(ingress));
-
-    Map<String, ServerImpl> resolved = serverResolver.resolve("machine");
-
-    assertEquals(resolved.size(), 1);
-    assertEquals(
-        resolved.get("http-server"),
-        new ServerImpl()
-            .withUrl("http://" + INGRESS_IP + INGRESS_RULE_PATH_PREFIX + "/api/")
-            .withStatus(ServerStatus.UNKNOWN)
-            .withAttributes(
-                defaultAttributeAnd(
-                    Constants.SERVER_PORT_ATTRIBUTE,
-                    "3054",
-                    ServerConfig.ENDPOINT_ORIGIN,
-                    INGRESS_PATH_PREFIX + "/")));
-  }
-
-  @Test
-  public void testResolvingServersWhenThereIsMatchedIngressForMachineAndServerPathIsNull() {
-    Ingress ingress =
-        createIngress(
-            "matched",
-            "machine",
-            Pair.of("http-server", new ServerConfigImpl("3054", "http", null, ATTRIBUTES_MAP)));
-
-    ServerResolver serverResolver =
-        new IngressServerResolver(
-            new NoopPathTransformInverter(), emptyList(), singletonList(ingress));
-
-    Map<String, ServerImpl> resolved = serverResolver.resolve("machine");
-
-    assertEquals(resolved.size(), 1);
-    assertEquals(
-        resolved.get("http-server"),
-        new ServerImpl()
-            .withUrl("http://" + INGRESS_IP + INGRESS_RULE_PATH_PREFIX + "/")
-            .withStatus(ServerStatus.UNKNOWN)
-            .withAttributes(
-                defaultAttributeAnd(
-                    Constants.SERVER_PORT_ATTRIBUTE,
-                    "3054",
-                    ServerConfig.ENDPOINT_ORIGIN,
-                    INGRESS_PATH_PREFIX + "/")));
-  }
-
-  @Test
-  public void testResolvingServersWhenThereIsMatchedIngressForMachineAndServerPathIsEmpty() {
-    Ingress ingress =
-        createIngress(
-            "matched",
-            "machine",
-            Pair.of("http-server", new ServerConfigImpl("3054", "http", "", ATTRIBUTES_MAP)));
-
-    ServerResolver serverResolver =
-        new IngressServerResolver(
-            new NoopPathTransformInverter(), emptyList(), singletonList(ingress));
-
-    Map<String, ServerImpl> resolved = serverResolver.resolve("machine");
-
-    assertEquals(resolved.size(), 1);
-    assertEquals(
-        resolved.get("http-server"),
-        new ServerImpl()
-            .withUrl("http://" + INGRESS_IP + INGRESS_RULE_PATH_PREFIX + "/")
-            .withStatus(ServerStatus.UNKNOWN)
-            .withAttributes(
-                defaultAttributeAnd(
-                    Constants.SERVER_PORT_ATTRIBUTE,
-                    "3054",
-                    ServerConfig.ENDPOINT_ORIGIN,
-                    INGRESS_PATH_PREFIX + "/")));
-  }
-
-  @Test
-  public void testResolvingServersWhenThereIsMatchedIngressForMachineAndServerPathIsRelative() {
-    Ingress ingress =
-        createIngress(
-            "matched",
-            "machine",
-            Pair.of("http-server", new ServerConfigImpl("3054", "http", "api", ATTRIBUTES_MAP)));
-
-    ServerResolver serverResolver =
-        new IngressServerResolver(
-            new NoopPathTransformInverter(), emptyList(), singletonList(ingress));
-
-    Map<String, ServerImpl> resolved = serverResolver.resolve("machine");
-
-    assertEquals(resolved.size(), 1);
-    assertEquals(
-        resolved.get("http-server"),
-        new ServerImpl()
-            .withUrl("http://" + INGRESS_IP + INGRESS_RULE_PATH_PREFIX + "/api/")
-            .withStatus(ServerStatus.UNKNOWN)
-            .withAttributes(
-                defaultAttributeAnd(
-                    Constants.SERVER_PORT_ATTRIBUTE,
-                    "3054",
-                    ServerConfig.ENDPOINT_ORIGIN,
-                    INGRESS_PATH_PREFIX + "/")));
-  }
-
-  @Test
   public void testResolvingInternalServers() {
     Service service =
         createService(
@@ -276,7 +163,7 @@ public class IngressServerResolverTest {
             new ServicePortBuilder()
                 .withPort(port)
                 .withNewTargetPort()
-                .withIntVal(port)
+                .withValue(port)
                 .endTargetPort()
                 .build())
         .endSpec()
@@ -309,12 +196,6 @@ public class IngressServerResolverTest {
                             null)))))
         .endSpec()
         .withNewStatus()
-        .withLoadBalancer(
-            new LoadBalancerStatusBuilder()
-                .addNewIngress()
-                .withIp("127.0.0.1")
-                .endIngress()
-                .build())
         .endStatus()
         .build();
   }

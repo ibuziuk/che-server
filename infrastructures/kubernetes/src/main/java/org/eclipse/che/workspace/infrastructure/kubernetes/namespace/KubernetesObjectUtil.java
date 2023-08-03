@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021 Red Hat, Inc.
+ * Copyright (c) 2012-2023 Red Hat, Inc.
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -11,21 +11,15 @@
  */
 package org.eclipse.che.workspace.infrastructure.kubernetes.namespace;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static org.eclipse.che.workspace.infrastructure.kubernetes.Annotations.CREATE_IN_CHE_INSTALLATION_NAMESPACE;
 
-import com.google.common.collect.ImmutableMap;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.LabelSelector;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaimFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimVolumeSource;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimVolumeSourceBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceSpec;
 import io.fabric8.kubernetes.api.model.Volume;
@@ -183,38 +177,6 @@ public class KubernetesObjectUtil {
     }
 
     selector.setMatchLabels(new HashMap<>(matchLabels));
-  }
-
-  /**
-   * Returns new instance of {@link PersistentVolumeClaim} with specified name, accessMode and
-   * quantity.
-   */
-  public static PersistentVolumeClaim newPVC(String name, String accessMode, String quantity) {
-    return newPVC(name, accessMode, quantity, null);
-  }
-
-  /**
-   * Returns new instance of {@link PersistentVolumeClaim} with specified name, accessMode, quantity
-   * and storageClassName.
-   */
-  public static PersistentVolumeClaim newPVC(
-      String name, String accessMode, String quantity, String storageClassName) {
-    SpecNested<PersistentVolumeClaimBuilder> specs =
-        new PersistentVolumeClaimBuilder()
-            .withNewMetadata()
-            .withName(name)
-            .endMetadata()
-            .withNewSpec()
-            .withAccessModes(accessMode);
-    if (!isNullOrEmpty(storageClassName)) {
-      specs.withStorageClassName(storageClassName);
-    }
-    return specs
-        .withNewResources()
-        .withRequests(ImmutableMap.of(STORAGE_PARAM, new Quantity(quantity)))
-        .endResources()
-        .endSpec()
-        .build();
   }
 
   /** Returns new instance of {@link VolumeMount} with specified name, mountPath and subPath. */

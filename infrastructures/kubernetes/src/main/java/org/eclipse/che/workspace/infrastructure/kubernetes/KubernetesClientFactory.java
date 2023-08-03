@@ -11,7 +11,6 @@
  */
 package org.eclipse.che.workspace.infrastructure.kubernetes;
 
-import io.fabric8.kubernetes.client.BaseKubernetesClient;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -99,7 +98,7 @@ public class KubernetesClientFactory {
    * authenticate with the credentials (user/password or Oauth token) contained in the {@code
    * config} parameter.
    */
-  protected BaseKubernetesClient<?> create(Config config) {
+  protected DefaultKubernetesClient create(Config config) {
     return new UnclosableKubernetesClient(httpClient, config);
   }
 

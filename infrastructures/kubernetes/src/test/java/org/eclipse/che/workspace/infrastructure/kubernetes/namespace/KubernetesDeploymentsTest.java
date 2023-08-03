@@ -11,7 +11,6 @@
  */
 package org.eclipse.che.workspace.infrastructure.kubernetes.namespace;
 
-import static io.fabric8.kubernetes.api.model.DeletionPropagation.BACKGROUND;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.che.workspace.infrastructure.kubernetes.Constants.POD_STATUS_PHASE_FAILED;
@@ -19,7 +18,6 @@ import static org.eclipse.che.workspace.infrastructure.kubernetes.Constants.POD_
 import static org.eclipse.che.workspace.infrastructure.kubernetes.Constants.POD_STATUS_PHASE_SUCCEEDED;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
@@ -30,9 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
 
 import com.google.common.collect.ImmutableMap;
 import io.fabric8.kubernetes.api.model.ContainerStateBuilder;
@@ -56,11 +52,8 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpecBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.AppsAPIGroupDSL;
-import io.fabric8.kubernetes.client.dsl.EditReplacePatchDeletable;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
@@ -69,7 +62,6 @@ import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.RollableScalableResource;
 import io.fabric8.kubernetes.client.dsl.V1APIGroupDSL;
 import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -78,10 +70,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import org.eclipse.che.api.workspace.server.spi.InfrastructureException;
 import org.eclipse.che.workspace.infrastructure.kubernetes.KubernetesClientFactory;
-import org.eclipse.che.workspace.infrastructure.kubernetes.KubernetesInfrastructureException;
 import org.eclipse.che.workspace.infrastructure.kubernetes.namespace.event.PodEvent;
 import org.eclipse.che.workspace.infrastructure.kubernetes.namespace.event.PodEventHandler;
 import org.eclipse.che.workspace.infrastructure.kubernetes.util.PodEvents;
@@ -119,12 +109,11 @@ public class KubernetesDeploymentsTest {
   @Mock private Deployment deployment;
   @Mock private ObjectMeta deploymentMetadata;
   @Mock private DeploymentSpec deploymentSpec;
-  @Mock private EditReplacePatchDeletable<Deployment> deploymentEditReplacePatchDeletable;
 
   // Pod Mocks
   @Mock private Pod pod;
   @Mock private PodStatus status;
-  @Mock private PodResource<Pod> podResource;
+  @Mock private PodResource podResource;
   @Mock private ObjectMeta metadata;
   @Mock private MixedOperation podsMixedOperation;
   @Mock private NonNamespaceOperation podsNamespaceOperation;
@@ -488,124 +477,6 @@ public class KubernetesDeploymentsTest {
   }
 
   @Test
-  public void testDeleteNonExistingPodBeforeWatch() throws Exception {
-    final String POD_NAME = "nonExistingPod";
-
-    doReturn(Boolean.FALSE).when(podResource).delete();
-    doReturn(podResource).when(podResource).withPropagationPolicy(eq(BACKGROUND));
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    new KubernetesDeployments("", "", clientFactory, executor)
-        .doDeletePod(POD_NAME)
-        .get(5, TimeUnit.SECONDS);
-
-    verify(watch).close();
-  }
-
-  @Test
-  public void testDeletePodThrowingKubernetesClientExceptionShouldCloseWatch() throws Exception {
-    final String POD_NAME = "nonExistingPod";
-    doReturn(podResource).when(podResource).withPropagationPolicy(eq(BACKGROUND));
-    doThrow(KubernetesClientException.class).when(podResource).delete();
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    try {
-      new KubernetesDeployments("", "", clientFactory, executor)
-          .doDeletePod(POD_NAME)
-          .get(5, TimeUnit.SECONDS);
-    } catch (KubernetesInfrastructureException e) {
-      assertTrue(e.getCause() instanceof KubernetesClientException);
-      verify(watch).close();
-      return;
-    }
-    fail("The exception should have been rethrown");
-  }
-
-  @Test
-  public void testDeleteNonExistingDeploymentBeforeWatch() throws Exception {
-    final String DEPLOYMENT_NAME = "nonExistingPod";
-    doReturn(deploymentResource).when(deploymentResource).withPropagationPolicy(eq(BACKGROUND));
-    doReturn(Boolean.FALSE).when(deploymentResource).delete();
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    new KubernetesDeployments("", "", clientFactory, executor)
-        .doDeleteDeployment(DEPLOYMENT_NAME)
-        .get(5, TimeUnit.SECONDS);
-
-    verify(watch).close();
-  }
-
-  @Test
-  public void testDeleteDeploymentThrowingKubernetesClientExceptionShouldCloseWatch()
-      throws Exception {
-    final String DEPLOYMENT_NAME = "nonExistingPod";
-
-    doThrow(KubernetesClientException.class).when(deploymentResource).delete();
-    doReturn(deploymentResource).when(deploymentResource).withPropagationPolicy(eq(BACKGROUND));
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    try {
-      new KubernetesDeployments("", "", clientFactory, executor)
-          .doDeleteDeployment(DEPLOYMENT_NAME)
-          .get(5, TimeUnit.SECONDS);
-    } catch (KubernetesInfrastructureException e) {
-      assertTrue(e.getCause() instanceof KubernetesClientException);
-      verify(watch).close();
-      return;
-    }
-    fail("The exception should have been rethrown");
-  }
-
-  @Test
-  public void testDeletePodThrowingAnyExceptionShouldCloseWatch() throws Exception {
-    final String POD_NAME = "nonExistingPod";
-    doReturn(podResource).when(podResource).withPropagationPolicy(eq(BACKGROUND));
-    doThrow(RuntimeException.class).when(podResource).delete();
-
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    try {
-      new KubernetesDeployments("", "", clientFactory, executor)
-          .doDeletePod(POD_NAME)
-          .get(5, TimeUnit.SECONDS);
-      fail("The exception should have been rethrown");
-    } catch (RuntimeException e) {
-      verify(watch).close();
-      return;
-    }
-  }
-
-  @Test(
-      expectedExceptions = RuntimeException.class,
-      expectedExceptionsMessageRegExp =
-          "testDeleteDeploymentThrowingAnyExceptionShouldCloseWatch msg")
-  public void testDeleteDeploymentThrowingAnyExceptionShouldCloseWatch() throws Exception {
-    final String DEPLOYMENT_NAME = "nonExistingPod";
-    when(deploymentResource.withPropagationPolicy(eq(BACKGROUND)))
-        .thenReturn(deploymentEditReplacePatchDeletable);
-    doThrow(new RuntimeException("testDeleteDeploymentThrowingAnyExceptionShouldCloseWatch msg"))
-        .when(deploymentEditReplacePatchDeletable)
-        .delete();
-    Watch watch = mock(Watch.class);
-    doReturn(watch).when(podResource).watch(any());
-
-    try {
-      new KubernetesDeployments("", "", clientFactory, executor)
-          .doDeleteDeployment(DEPLOYMENT_NAME)
-          .get(5, TimeUnit.SECONDS);
-      fail("The exception should have been rethrown");
-    } catch (RuntimeException e) {
-      verify(watch).close();
-      throw e;
-    }
-  }
-
-  @Test
   public void shouldFallbackToFirstTimeStampIfLastTimeStampIsNull() throws InfrastructureException {
     // Given
     when(objectReference.getKind()).thenReturn(POD_OBJECT_KIND);
@@ -658,39 +529,6 @@ public class KubernetesDeploymentsTest {
     verify(podEventHandler).handle(captor.capture());
     PodEvent podEvent = captor.getValue();
     assertEquals(podEvent.getLastTimestamp(), PodEvents.convertDateToEventTimestamp(nextYear));
-  }
-
-  @Test
-  public void shouldHandleEventWithEmptyLastTimestampAndFirstTimestamp() throws Exception {
-    // Given
-    when(objectReference.getKind()).thenReturn(POD_OBJECT_KIND);
-    kubernetesDeployments.watchEvents(podEventHandler);
-    Calendar cal = Calendar.getInstance();
-    cal.add(Calendar.MINUTE, -1);
-    Date minuteAgo = cal.getTime();
-
-    Field f = KubernetesDeployments.class.getDeclaredField("watcherInitializationDate");
-    f.setAccessible(true);
-    f.set(kubernetesDeployments, minuteAgo);
-
-    verify(eventNamespaceMixedOperation).watch(eventWatcherCaptor.capture());
-    Watcher<Event> watcher = eventWatcherCaptor.getValue();
-    Event event = mock(Event.class);
-    when(event.getInvolvedObject()).thenReturn(objectReference);
-    when(event.getMetadata()).thenReturn(new ObjectMeta());
-    when(event.getLastTimestamp()).thenReturn(null);
-    when(event.getFirstTimestamp()).thenReturn(null);
-
-    // When
-    watcher.eventReceived(Watcher.Action.ADDED, event);
-
-    // Then
-    verify(event, times(1)).getLastTimestamp();
-    verify(event, times(1)).getFirstTimestamp();
-    ArgumentCaptor<PodEvent> captor = ArgumentCaptor.forClass(PodEvent.class);
-    verify(podEventHandler).handle(captor.capture());
-    PodEvent podEvent = captor.getValue();
-    assertNotNull(podEvent.getLastTimestamp());
   }
 
   @Test

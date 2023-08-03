@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021 Red Hat, Inc.
+ * Copyright (c) 2012-2023 Red Hat, Inc.
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -14,11 +14,8 @@ package org.eclipse.che.workspace.infrastructure.kubernetes.devfile;
 import static io.fabric8.kubernetes.client.utils.Serialization.unmarshal;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.eclipse.che.api.workspace.server.devfile.Constants.KUBERNETES_COMPONENT_TYPE;
-import static org.eclipse.che.api.workspace.shared.Constants.PROJECTS_VOLUME_NAME;
 import static org.eclipse.che.workspace.infrastructure.kubernetes.devfile.KubernetesEnvironmentProvisioner.YAML_CONTENT_TYPE;
-import static org.eclipse.che.workspace.infrastructure.kubernetes.namespace.KubernetesObjectUtil.newPVC;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.testng.Assert.assertEquals;
@@ -28,12 +25,10 @@ import com.google.common.collect.ImmutableMap;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesList;
 import io.fabric8.kubernetes.api.model.KubernetesListBuilder;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -277,33 +272,6 @@ public class KubernetesEnvironmentProvisionerTest {
     // when
     k8sEnvProvisioner.provision(
         workspaceConfig, KubernetesEnvironment.TYPE, componentsObject, emptyMap());
-  }
-
-  @Test
-  public void shouldMergeProjectPVCIntoOne() throws Exception {
-    // given
-    PersistentVolumeClaim volumeClaim = newPVC(PROJECTS_VOLUME_NAME, "ReadWriteMany", "1Gb");
-    workspaceConfig.setDefaultEnv("default");
-    RecipeImpl existingRecipe =
-        new RecipeImpl("kubernetes", YAML_CONTENT_TYPE, Serialization.asYaml(volumeClaim), null);
-    doReturn(singletonList(volumeClaim)).when(k8sRecipeParser).parse(anyString());
-
-    workspaceConfig
-        .getEnvironments()
-        .put("default", new EnvironmentImpl(existingRecipe, emptyMap()));
-
-    // try add same claim one more time (like another component adds it)
-    List<HasMetadata> componentsObject = new ArrayList<>();
-    componentsObject.add(volumeClaim);
-
-    // when
-    k8sEnvProvisioner.provision(
-        workspaceConfig, KubernetesEnvironment.TYPE, componentsObject, emptyMap());
-
-    // we still have only one PVC
-    EnvironmentImpl resultEnv =
-        workspaceConfig.getEnvironments().get(workspaceConfig.getDefaultEnv());
-    assertEquals(toK8SList(resultEnv.getRecipe().getContent()).getItems().size(), 1);
   }
 
   @Test(

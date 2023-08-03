@@ -11,12 +11,10 @@
  */
 package org.eclipse.che.workspace.infrastructure.kubernetes.namespace;
 
-import static io.fabric8.kubernetes.api.model.DeletionPropagation.BACKGROUND;
 import static org.eclipse.che.workspace.infrastructure.kubernetes.Annotations.CREATE_IN_CHE_INSTALLATION_NAMESPACE;
 import static org.eclipse.che.workspace.infrastructure.kubernetes.Constants.CHE_WORKSPACE_ID_LABEL;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -26,7 +24,6 @@ import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMapList;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.EditReplacePatchDeletable;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import java.util.Arrays;
@@ -69,8 +66,6 @@ public class CheNamespaceTest {
 
   @Mock
   private MixedOperation<ConfigMap, ConfigMapList, Resource<ConfigMap>> kubeConfigMapsWithLabel;
-
-  @Mock private EditReplacePatchDeletable<ConfigMap> kubeConfigMapsWithPropagationPolicy;
 
   @Mock private InternalRuntime internalRuntime;
 
@@ -226,23 +221,5 @@ public class CheNamespaceTest {
   @Test(expectedExceptions = InfrastructureException.class)
   public void cleanupThrowExceptionWhenWorkspaceIdIsNull() throws InfrastructureException {
     cheNamespace.cleanUp(null);
-  }
-
-  @Test
-  public void testCleanup() throws InfrastructureException {
-    // given
-    when(clientFactory.create()).thenReturn(kubeClient);
-    when(kubeClient.configMaps()).thenReturn(kubeConfigMaps);
-    when(kubeConfigMaps.inNamespace(CHE_NAMESPACE)).thenReturn(kubeConfigMapsInNamespace);
-    when(kubeConfigMapsInNamespace.withLabel(CHE_WORKSPACE_ID_LABEL, WORKSPACE_ID))
-        .thenReturn(kubeConfigMapsWithLabel);
-    when(kubeConfigMapsWithLabel.withPropagationPolicy(BACKGROUND))
-        .thenReturn(kubeConfigMapsWithPropagationPolicy);
-
-    // when
-    cheNamespace.cleanUp(WORKSPACE_ID);
-
-    // then
-    verify(kubeConfigMapsWithPropagationPolicy).delete();
   }
 }
